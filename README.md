@@ -1,5 +1,5 @@
 # Artist-Unite-Bot
-A bot I made for friend
+A bot I made for a friend
 
 Setup is easy
 
