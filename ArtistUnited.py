@@ -3,18 +3,12 @@
 #4/4/21
 #<----->
 
-from itertools import count
-from typing import List
+
+
 import discord, json, os, uuid, asyncio
-from discord.abc import PrivateChannel, User
-from discord.colour import Color
-from discord.embeds import Embed
 #<----->
 from discord.ext import commands
 from discord.errors import *
-from discord.ext.commands.errors import NotOwner
-from discord.flags import fill_with_flags
-from discord.user import Profile
 
 #Vars
 Key = ""
@@ -39,13 +33,15 @@ async def on_ready():
     print('Ready!\n')
     global NewCommissionsChannel
     global RatingChannel
+    global LogsChannel
     RatingChannel = bot.get_channel(828822238990958613) 
     NewCommissionsChannel = bot.get_channel(828705404669132871)
+    LogsChannel = bot.get_channel(829709294748303408)
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=f"{pre}help"))
 
 @bot.event
 async def on_message(message):
-    if message.channel.id == 828705378753445889:
+    if message.channel.id == 829124934843236373:
         await bot.process_commands(message)
 
 @bot.command(aliases=['newprofile','np'])
@@ -83,11 +79,12 @@ async def profile(ctx,member:discord.Member=None):
                 Bio = JSON["Bio"]
                 CommsStr = await getComms(JSON)
                 Rounded,Decimal = await calcRatings(JSON)
+                Desc = f"""__**Bio**__:\n```\n{Bio}\n```\n__**User Ratings**__:\n```\nRounded Rating: {Rounded}\nExact Rating: {Decimal}\n```\n__**Current Commissions**__:\n```ini\n{CommsStr}\n```"""
                 if member.id != __author__:
-                    Embed = discord.Embed(title=f"{author}'s profile",description = f"Bio:```\n{Bio}\n```\nUser Ratings\nRounded: ```cal\n{Rounded}\n```\nExact: ```cal\n{Decimal}\n```\nCurrent Commissions:\n```{CommsStr}```\n",color = discord.Color.red())
+                    Embed = discord.Embed(title=f"{author}'s profile",description = Desc,color = discord.Color.red())
                     await ctx.send(embed=Embed)
                 else:
-                    Embed = discord.Embed(title=f"{author}'s profile",description = f"Bio:```\n{Bio}\n```\nUser Ratings\nRounded: ```cal\n{Rounded}\n```\nExact: ```cal\n{Decimal}\n```\nCurrent Commissions:\n```{CommsStr}```\n",color = discord.Color.red()).set_footer(text="Artist Unite Devloper")
+                    Embed = discord.Embed(title=f"{author}'s profile",description = Desc,color = discord.Color.red()).set_footer(text="Artist Unite Devloper")
                     await ctx.send(embed=Embed)
         else:
             await ctx.send(f"It appears that {member} dosent have a profile")
@@ -98,11 +95,12 @@ async def profile(ctx,member:discord.Member=None):
                 Bio = JSON["Bio"]
                 CommsStr = await getComms(JSON)
                 Rounded,Decimal = await calcRatings(JSON)
+                Desc = f"""__**Bio**__:\n```\n{Bio}\n```\n__**User Ratings**__:\n```\nRounded Rating: {Rounded}\nExact Rating: {Decimal}\n```\n__**Current Commissions**__:\n```ini\n{CommsStr}\n```"""
                 if ctx.author.id != __author__:
-                    Embed = discord.Embed(title=f"{author}'s profile",description = f"Bio:```\n{Bio}\n```\nUser Ratings\nRounded: ```cal\n{Rounded}\n```\nExact: ```cal\n{Decimal}\n```\nCurrent Commissions:\n```{CommsStr}```\n",color = discord.Color.red())
+                    Embed = discord.Embed(title=f"{author}'s profile",description = Desc,color = discord.Color.red())
                     await ctx.send(embed=Embed)
                 else:
-                    Embed = discord.Embed(title=f"{author}'s profile",description = f"Bio:```\n{Bio}\n```\nUser Ratings\nRounded: ```cal\n{Rounded}\n```\nExact: ```cal\n{Decimal}\n```\nCurrent Commissions:\n```{CommsStr}```\n",color = discord.Color.red()).set_footer(text="Artist Unite Devloper")
+                    Embed = discord.Embed(title=f"{author}'s profile",description = Desc,color = discord.Color.red()).set_footer(text="Artist Unite Devloper")
                     await ctx.send(embed=Embed)
         else:
             await ctx.send(f"It appears that you dont have a profile. To make a profile type ``{pre}newProfile``")
@@ -119,7 +117,7 @@ async def working_on(ctx,member:discord.Member=None):
             JSON = json.load(ProfileJSONFile)
             Comms = await getAcceptedComms(JSON)
             print(Comms)
-            Embed = discord.Embed(title=f"{author}'s accepted commissions",description=f"```{Comms}```")
+            Embed = discord.Embed(title=f"{author}'s accepted commissions",description=f"```apache\n{Comms}\n```")
             await ctx.send(embed=Embed)
     else:
         await ctx.send(f"It appears that {member} dosent have a profile")
@@ -129,71 +127,12 @@ async def editProfile(ctx):
     if os.path.exists(f"{ProfilesDir}\{ctx.author.id}.json") == True:
         author = ctx.author
 
-        Embed = discord.Embed(title="Current edit options",description="Delete -Deletes your profile\nBio -Edits your bio",color=discord.Colour.red())
+        Embed = discord.Embed(title="Current edit options",description="Bio -Edits your bio",color=discord.Colour.red())
         await author.send("Please select one of the options below",embed=Embed)
         RawInput = await bot.wait_for("message",check=lambda message: message.author == ctx.author)
         CleanInput = str(RawInput.content)
         
-        if CleanInput.lower() == "delete":
-            await author.send("Are you sure you want to delete your profile? All your commisions would be deleted. Reply with ``yes`` or ``no``")
-            RawInput = await bot.wait_for("message",check=lambda message: message.author == ctx.author)
-            CleanInput = str(RawInput.content)
-            if CleanInput.lower() == "yes":
-                with open(f"{ProfilesDir}\{author.id}.json","r") as ProfileJSONFile:
-                    JSONProfile = json.load(ProfileJSONFile)
-                    List = JSONProfile["Comms"]
-                    Count = 0
-                    if len(List) > 0:
-                        if len(List) > 1:
-                            for i in List:
-                                Count = Count + 1
-                                CommsFile = open(f"{CommsDir}\{i}","r")
-                                CommsJSON = json.load(CommsFile)
-                                if CommsJSON["ClaimInfo"]["IsClaimed"] != False:
-                                    ID = CommsJSON["ClaimInfo"]["ClaimedOwnerID"]
-                                    User = await bot.fetch_user(ID)
-                                    Owner = CommsJSON["Owner"]
-                                    OwnerID = CommsJSON["OwnerID"]
-                                    CommsDetails = CommsJSON["CommDetails"]
-                                    CommsPrice = CommsJSON["CommPrice"]
-                                    await User.send(f"Your claimed commission has been removed. Reason: Commission creator account deleted\n```\nCommission Owner Details:\n    Owner: {Owner}\n     -OwnerID: {OwnerID}\n\n  Commission Details: {CommsDetails}\nCommission Price: {CommsPrice}\n```")
-                                    CommsFile.close()
-                                    os.remove(f"{CommsDir}\{i}")
-                                else:
-                                    CommsFile.close()
-                                    os.remove(f"{CommsDir}\{i}")
-                            ProfileJSONFile.close()
-                            os.remove(f"{ProfilesDir}\{author.id}.json")
-                            await author.send("Profile deleted")       
-                        else:
-                            CommsFile = open(f"{CommsDir}\{List[0]}","r")
-                            CommsJSON = json.load(CommsFile)
-                            if CommsJSON["ClaimInfo"]["IsClaimed"] != False:
-                                ID = CommsJSON["ClaimInfo"]["ClaimedOwnerID"]
-                                User = await bot.fetch_user(ID)
-                                Owner = CommsJSON["Owner"]
-                                OwnerID = CommsJSON["OwnerID"]
-                                CommsDetails = CommsJSON["CommDetails"]
-                                CommsPrice = CommsJSON["CommPrice"]
-                                await User.send(f"Your claimed commission has been removed. Reason: Commission creator account deleted\n```\nCommission Details:\n    Owner: {Owner}\n     -OwnerID: {OwnerID}\n\n  Commission Details: {CommsDetails}\n Commission Price: {CommsPrice}\n```")
-                                CommsFile.close()
-                                ProfileJSONFile.close()
-                                os.remove(f"{CommsDir}\{List[0]}")
-                                os.remove(f"{ProfilesDir}\{author.id}.json")
-                                await author.send("Profile deleted")
-                            else:
-                                CommsFile.close()
-                                ProfileJSONFile.close()
-                                os.remove(f"{CommsDir}\{List[0]}")
-                                os.remove(f"{ProfilesDir}\{author.id}.json")
-                                await author.send("Profile deleted")
-                    else:
-                        ProfileJSONFile.close()
-                        os.remove(f"{ProfilesDir}\{author.id}.json")
-                        await author.send("Profile deleted")
-            else:
-                await author.send("Cancelling")
-        else:
+        if CleanInput.lower() == "bio":
             await author.send("Please type in a new bio")
             RawInput = await bot.wait_for("message",check=lambda message: message.author == ctx.author)
             CleanInput = str(RawInput.content).replace("```","")
@@ -272,13 +211,21 @@ async def delCommission(ctx,id):
                         ReadOnlyComms.close()
                         if CJSON["ClaimInfo"]["IsClaimed"] != False:
                             User = await bot.fetch_user(CJSON["ClaimInfo"]["ClaimedOwnerID"])
+                            CID = CJSON["ClaimInfo"]["ClaimedOwnerID"]
+                            ReadOnlyClaimOwner = open(f"{ProfilesDir}\{CID}.json","r")
+                            OPJSON = json.load(ReadOnlyClaimOwner)
+                            ReadOnlyClaimOwner.close()
+                            OPJSON["AcceptedComms"].remove(f"{id}.json")
+                            WriteOnlyClaimOwner = open(f"{ProfilesDir}\{CID}.json","w")
                             Owner = CJSON["Owner"]
                             OwnerID = CJSON["OwnerID"]
                             CommsDetails = CJSON["CommDetails"]
                             CommsPrice = CJSON["CommPrice"]
                             await User.send(f"Your claimed commission has been removed.\nReason: Commission creator deleted commission\n```\nCommission Owner Details:\n    Owner: {Owner}\n     -OwnerID: {OwnerID}\n\n  Commission Details: {CommsDetails}\nCommission Price: {CommsPrice}\n```")
                             json.dump(PJSON,WriteOnlyProfile)
+                            json.dump(OPJSON,WriteOnlyClaimOwner)
                             os.remove(f"{CommsDir}\{File}")
+                            WriteOnlyClaimOwner.close()
                             WriteOnlyProfile.close()
                             await ctx.send("Commission deleted")
                         else:
@@ -471,7 +418,7 @@ async def getComms(JSON):
                 CommsJSON = json.load(File)
                 ID = CommsJSON["CommsID"]
                 IsClaimed = CommsJSON["ClaimInfo"]["IsClaimed"]
-                ParentStr = ParentStr + f"Commission {Count}:\n  ID:{ID}\n  IsClaimed:{IsClaimed}\n"
+                ParentStr = ParentStr + f"Commission {Count}:\n  ID:[{ID}]\n  IsClaimed:[{IsClaimed}]\n"
                 File.close()
             return ParentStr
         else:
@@ -480,7 +427,7 @@ async def getComms(JSON):
             ID = CommsJSON["CommsID"]
             IsClaimed = CommsJSON["ClaimInfo"]["IsClaimed"]
             File.close()
-            return f"Commission 1:\n  ID:{ID}\n  IsClaimed:{IsClaimed}\n"
+            return f"Commission 1:\n  ID:[{ID}]\n  IsClaimed:[{IsClaimed}]\n"
     else:
         return "None"
 
